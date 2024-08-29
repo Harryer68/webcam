@@ -72,7 +72,6 @@
         let mediaRecorder;
         let recordedChunks = [];
         let recordingInterval;
-        let fileCounter = 0;
 
         // 카메라 스트림 시작
         startButton.addEventListener('click', () => {
@@ -103,7 +102,6 @@
 
         // 녹화 시작
         function startRecording() {
-            recordedChunks = [];
             mediaRecorder = new MediaRecorder(stream);
 
             mediaRecorder.ondataavailable = event => {
@@ -113,22 +111,28 @@
             };
 
             mediaRecorder.onstop = () => {
+                // 저장된 데이터로 파일 생성 및 다운로드
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                link.download = `recorded_video_${timestamp}_${fileCounter}.webm`;
+                link.download = `recorded_video_${timestamp}.webm`;
                 link.click();
-                fileCounter++;  // 고유한 파일 이름을 위해 카운터 증가
+
+                // 녹화 데이터 초기화
+                recordedChunks = [];
+
+                // 녹화 다시 시작
+                mediaRecorder.start();
             };
 
             mediaRecorder.start();
 
+            // 주기적으로 녹화 중지
             recordingInterval = setInterval(() => {
                 mediaRecorder.stop();
-                mediaRecorder.start();
-            }, 5000); // 5초마다 녹화 중지 및 시작
+            }, 5000); // 5초마다 녹화 중지
         }
 
         // 녹화 중지
