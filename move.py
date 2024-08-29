@@ -29,21 +29,21 @@ class MoveFileHandler(FileSystemEventHandler):
                 while os.path.exists(event.src_path):
                     time.sleep(1)  # 1초 대기
 
-                # 다운로드가 완료된 후 파일 이름이 "recorded_video_"로 시작하는 .webm 파일 찾기
-                for file in os.listdir(download_folder):
-                    if file.startswith("recorded_video_") and file.endswith(".webm"):
-                        new_file_name = file
-                        new_file_path = os.path.join(download_folder, new_file_name)
+                # 다운로드가 완료된 후 관련된 .webm 파일 찾기
+                tmp_base_name = os.path.splitext(original_file_name)[0]  # .tmp 확장자를 제외한 파일 이름
+                webm_file_name = f"recorded_video_{tmp_base_name}.webm"
+                new_file_path = os.path.join(download_folder, webm_file_name)
 
-                        # .webm 파일이 존재하면 이동
-                        destination_path = os.path.join(destination_folder, new_file_name)
-                        shutil.move(new_file_path, destination_path)
-                        print(f"{new_file_name}을(를) {destination_path}로 이동했습니다.")
-                        break
+                # .webm 파일이 존재하면 이동
+                if os.path.exists(new_file_path):
+                    destination_path = os.path.join(destination_folder, webm_file_name)
+                    shutil.move(new_file_path, destination_path)
+                    print(f"{webm_file_name}을(를) {destination_path}로 이동했습니다.")
                 else:
-                    print(f"{original_file_name}에 해당하는 recorded_video_ 파일이 생성되지 않았습니다.")
+                    print(f"{webm_file_name}이(가) 생성되지 않았습니다.")
                 
                 del downloaded_files[original_file_name]  # 다운로드 완료 후 딕셔너리에서 삭제
+
             elif file_extension.lower() == '.webm' and original_file_name.startswith("recorded_video_"):
                 # 이미 "recorded_video_"로 시작하는 .webm 파일인 경우 바로 이동
                 destination_path = os.path.join(destination_folder, original_file_name)
