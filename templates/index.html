@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카메라 웹앱</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            flex-direction: row;
+        }
+        .video-container {
+            position: relative;
+        }
+        video {
+            border: 2px solid #35424a;
+            width: 640px;
+            height: 480px;
+        }
+        .overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 5px;
+        }
+        canvas {
+            display: none;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #photoContainer {
+            margin-left: 20px; /* 비디오와 사진 사이의 간격 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        img {
+            margin-top: 10px;
+            border: 2px solid #35424a;
+            width: 640px; /* 사진의 너비를 비디오와 동일하게 설정 */
+            height: 480px; /* 사진의 높이를 비디오와 동일하게 설정 */
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="video" autoplay></video>
+        <div class="overlay">카메라 스트림</div>
+    </div>
+    <div id="photoContainer">
+        <button id="start">카메라 켜기</button>
+        <button id="stop" style="display:none;">카메라 끄기</button>
+        <!-- <button id="capture" style="display:none;">사진 찍기</button> -->
+        <!-- <button id="save" style="display:none;">저장하기</button> -->
+        <!-- <h2>찍은 사진</h2> -->
+        <img id="capturedPhoto" style="display:none;" />
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        // const captureButton = document.getElementById('capture');
+        // const saveButton = document.getElementById('save');
+        const capturedPhoto = document.getElementById('capturedPhoto');
+        let stream;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let recordingInterval;
+
+        // 카메라 스트림 시작
+        startButton.addEventListener('click', () => {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(s => {
+                    stream = s;
+                    video.srcObject = stream;
+                    startButton.style.display = 'none';
+                    stopButton.style.display = 'inline';
+                    // captureButton.style.display = 'inline';
+                    startRecording();
+                })
+                .catch(err => {
+                    console.error("카메라 접근 오류:", err);
+                });
+        });
+
+        // 카메라 스트림 중지
+        stopButton.addEventListener('click', () => {
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+                startButton.style.display = 'inline';
+                stopButton.style.display = 'none';
+                // captureButton.style.display = 'none';
+                stopRecording();
+            }
+        });
+
+        // 사진 찍기
+        // captureButton.addEventListener('click', () => {
+        //     const context = canvas.getContext('2d');
+        //     canvas.width = video.videoWidth;
+        //     canvas.height = video.videoHeight;
+        //     context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        //     const dataURL = canvas.toDataURL('image/png');
+        //     capturedPhoto.src = dataURL; // 찍은 사진을 img 요소에 설정
+        //     capturedPhoto.style.display = 'block'; // 사진 표시
+        //     saveButton.style.display = 'block'; // 저장 버튼 표시
+        // });
+
+        // 사진 저장하기
+        // saveButton.addEventListener('click', () => {
+        //     const link = document.createElement('a');
+        //     link.href = canvas.toDataURL('image/png');
+        //     link.download = 'captured_image.png';
+        //     link.click();
+        // });
+
+        // 녹화 시작
+        function startRecording() {
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // 파일 이름에 사용할 타임스탬프
+                link.download = `recorded_video_${timestamp}.webm`;
+                link.click();
+            };
+            mediaRecorder.start();
+            recordingInterval = setInterval(() => {
+                mediaRecorder.stop();
+                mediaRecorder.start();
+            }, 5000); // 30초마다 녹화 중지 및 시작
+        }
+
+        // 녹화 중지
+        function stopRecording() {
+            clearInterval(recordingInterval);
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+        }
+    </script>
+</body>
+</html>
