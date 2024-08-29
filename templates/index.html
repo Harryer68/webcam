@@ -39,7 +39,7 @@
             font-size: 16px;
         }
         #photoContainer {
-            margin-left: 20px; /* 비디오와 사진 사이의 간격 */
+            margin-left: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -47,8 +47,8 @@
         img {
             margin-top: 10px;
             border: 2px solid #35424a;
-            width: 640px; /* 사진의 너비를 비디오와 동일하게 설정 */
-            height: 480px; /* 사진의 높이를 비디오와 동일하게 설정 */
+            width: 640px;
+            height: 480px;
         }
     </style>
 </head>
@@ -60,22 +60,14 @@
     <div id="photoContainer">
         <button id="start">카메라 켜기</button>
         <button id="stop" style="display:none;">카메라 끄기</button>
-        <!-- <button id="capture" style="display:none;">사진 찍기</button> -->
-        <!-- <button id="save" style="display:none;">저장하기</button> -->
-        <!-- <h2>찍은 사진</h2> -->
-        <img id="capturedPhoto" style="display:none;" />
     </div>
 
     <canvas id="canvas"></canvas>
 
     <script>
         const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
         const startButton = document.getElementById('start');
         const stopButton = document.getElementById('stop');
-        // const captureButton = document.getElementById('capture');
-        // const saveButton = document.getElementById('save');
-        const capturedPhoto = document.getElementById('capturedPhoto');
         let stream;
         let mediaRecorder;
         let recordedChunks = [];
@@ -89,7 +81,6 @@
                     video.srcObject = stream;
                     startButton.style.display = 'none';
                     stopButton.style.display = 'inline';
-                    // captureButton.style.display = 'inline';
                     startRecording();
                 })
                 .catch(err => {
@@ -105,54 +96,43 @@
                 video.srcObject = null;
                 startButton.style.display = 'inline';
                 stopButton.style.display = 'none';
-                // captureButton.style.display = 'none';
                 stopRecording();
             }
         });
 
-        // 사진 찍기
-        // captureButton.addEventListener('click', () => {
-        //     const context = canvas.getContext('2d');
-        //     canvas.width = video.videoWidth;
-        //     canvas.height = video.videoHeight;
-        //     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        //     const dataURL = canvas.toDataURL('image/png');
-        //     capturedPhoto.src = dataURL; // 찍은 사진을 img 요소에 설정
-        //     capturedPhoto.style.display = 'block'; // 사진 표시
-        //     saveButton.style.display = 'block'; // 저장 버튼 표시
-        // });
-
-        // 사진 저장하기
-        // saveButton.addEventListener('click', () => {
-        //     const link = document.createElement('a');
-        //     link.href = canvas.toDataURL('image/png');
-        //     link.download = 'captured_image.png';
-        //     link.click();
-        // });
-
         // 녹화 시작
         function startRecording() {
-            recordedChunks = [];
             mediaRecorder = new MediaRecorder(stream);
+
             mediaRecorder.ondataavailable = event => {
                 if (event.data.size > 0) {
                     recordedChunks.push(event.data);
                 }
             };
+
             mediaRecorder.onstop = () => {
+                // 저장된 데이터로 파일 생성 및 다운로드
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // 파일 이름에 사용할 타임스탬프
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 link.download = `recorded_video_${timestamp}.webm`;
                 link.click();
+
+                // 녹화 데이터 초기화
+                recordedChunks = [];
+
+                // 녹화 다시 시작
+                mediaRecorder.start();
             };
+
             mediaRecorder.start();
+
+            // 주기적으로 녹화 중지
             recordingInterval = setInterval(() => {
                 mediaRecorder.stop();
-                mediaRecorder.start();
-            }, 5000); // 30초마다 녹화 중지 및 시작
+            }, 5000); // 5초마다 녹화 중지
         }
 
         // 녹화 중지
