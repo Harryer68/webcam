@@ -64,6 +64,9 @@
 
     <canvas id="canvas"></canvas>
 
+    <!-- FFmpeg.js 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+
     <script>
         const video = document.getElementById('video');
         const startButton = document.getElementById('start');
@@ -72,6 +75,8 @@
         let mediaRecorder;
         let recordedChunks = [];
         let recordingInterval;
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
 
         // 카메라 스트림 시작
         startButton.addEventListener('click', () => {
@@ -110,21 +115,23 @@
                 }
             };
 
-            mediaRecorder.onstop = () => {
+            mediaRecorder.onstop = async () => {
                 // 저장된 데이터로 파일 생성 및 다운로드
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
+                
+                // webm 파일을 mp4로 변환
+                const mp4Blob = await convertWebMtoMP4(blob);
+                
+                // mp4 파일 다운로드 링크 생성
+                const url = URL.createObjectURL(mp4Blob);
                 const link = document.createElement('a');
                 link.href = url;
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                link.download = `recorded_video_${timestamp}.webm`;
+                link.download = `recorded_video_${timestamp}.mp4`;
                 link.click();
 
                 // 녹화 데이터 초기화
                 recordedChunks = [];
-
-                // 녹화 다시 시작
-                mediaRecorder.start();
             };
 
             mediaRecorder.start();
@@ -141,6 +148,23 @@
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
             }
+        }
+
+        // webm 파일을 mp4로 변환하는 함수
+        async function convertWebMtoMP4(webmBlob) {
+            if (!ffmpeg.isLoaded()) {
+                await ffmpeg.load();
+            }
+
+            const webmFile = new File([webmBlob], 'video.webm', { type: 'video/webm' });
+            await ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmFile));
+
+            await ffmpeg.run('-i', 'input.webm', 'output.mp4');
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+
+            // Blob 생성
+            const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+            return mp4Blob;
         }
     </script>
 </body>
